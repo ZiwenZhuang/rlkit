@@ -541,6 +541,7 @@ def run_experiment(
 
     try:
         import git
+        import doodad
         doodad_path = osp.abspath(osp.join(
             osp.dirname(doodad.__file__),
             os.pardir
