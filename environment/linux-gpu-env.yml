@@ -27,3 +27,8 @@ dependencies:
   - gtimer==1.0.0b5
   - pygame==1.9.2
   - ipdb  # technically unnecessary
+  - sk-video
+  - boto3
+  - torchvision
+  - mujoco-py==1.50.1.68
+  - pylint

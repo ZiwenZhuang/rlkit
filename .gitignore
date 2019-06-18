@@ -7,3 +7,10 @@ rlkit/launchers/conf_private.py
 MANIFEST
 *.egg-info
 \.idea/
+
+# vscode
+.vscode
+
+# data
+data
+
