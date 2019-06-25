@@ -346,7 +346,6 @@ def get_envs(variant):
                     decode_goals=render,
                     render_goals=render,
                     render_rollouts=render,
-                    reward_params=reward_params,
                     **variant.get('vae_wrapped_env_kwargs', {})
                 )
                 presampled_goals = variant['generate_goal_dataset_fctn'](
@@ -376,7 +375,6 @@ def get_envs(variant):
                 decode_goals=render,
                 render_goals=render,
                 render_rollouts=render,
-                reward_params=reward_params,
                 presampled_goals=presampled_goals,
                 **variant.get('vae_wrapped_env_kwargs', {})
             )
@@ -389,7 +387,6 @@ def get_envs(variant):
                 decode_goals=render,
                 render_goals=render,
                 render_rollouts=render,
-                reward_params=reward_params,
                 **variant.get('vae_wrapped_env_kwargs', {})
             )
             if presample_image_goals_only:
