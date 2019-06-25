@@ -12,7 +12,7 @@ from rlkit.launchers.launcher_util import run_experiment
 from rlkit.launchers.skewfitIndicator_experiments import skewfit_full_experiment
 from rlkit.torch.vae.conv_vae import imsize48_default_architecture
 
-if __name__ == "__main__":
+def main(args):
     num_images = 1
     variant = dict(
         algorithm='Skew-Fit',
@@ -92,7 +92,7 @@ if __name__ == "__main__":
             ),
             vae_wrapped_env_kwargs=dict(
                 reward_params=dict(
-                    type='warpped_env',
+                    type='wrapped_env',
                 ),
                 sample_from_true_prior=False,
             ),
@@ -165,8 +165,17 @@ if __name__ == "__main__":
                 snapshot_gap=200,
                 snapshot_mode='gap_and_last',
                 num_exps_per_instance=3,
+                base_log_dir=args.base_log_dir,
                 gcp_kwargs=dict(
                     zone='us-west1-b',
                 ),
-
             )
+
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser()
+    
+    parser.add_argument('--log_dir', help= 'the root directory to store experiment data',
+        dest= 'base_log_dir', type= str, default= None)
+
+    main(parser.parse_args())
