@@ -92,7 +92,8 @@ def main(args):
             ),
             vae_wrapped_env_kwargs=dict(
                 reward_params=dict(
-                    type='wrapped_env',
+                    type='latent_sparse',
+                    # type='wrapped_env',
                 ),
                 sample_from_true_prior=False,
             ),
