@@ -131,3 +131,9 @@ class MakeDeterministic(Policy):
     def get_action(self, observation):
         return self.stochastic_policy.get_action(observation,
                                                  deterministic=True)
+
+    def to(self, device):
+        ''' Given the stochastic policy could have method to move to GPU
+        this function service as a wrapper.
+        '''
+        return self.stochastic_policy.to(device)
