@@ -101,8 +101,7 @@ class VAEWrappedEnv(ProxyEnv, MultitaskEnv):
         self._update_info(info, new_obs)
         reward = self.compute_reward(
             action,
-            {'latent_achieved_goal': new_obs['latent_achieved_goal'],
-             'latent_desired_goal': new_obs['latent_desired_goal']}
+            new_obs,
         )
         self.try_render(new_obs)
         return new_obs, reward, done, info
@@ -209,7 +208,7 @@ class VAEWrappedEnv(ProxyEnv, MultitaskEnv):
             achieved_goals = obs['latent_achieved_goal']
             desired_goals = obs['latent_desired_goal']
             dist = np.linalg.norm(desired_goals - achieved_goals, ord=self.norm_order, axis=1)
-            reward = 0 if dist < self.epsilon else -1
+            reward = np.array([1]) if (dist < self.epsilon).all() else np.array([-1])
             return reward
         elif self.reward_type == 'state_distance':
             achieved_goals = obs['state_achieved_goal']
@@ -416,6 +415,7 @@ class VAEWrappedEnv(ProxyEnv, MultitaskEnv):
 
     def __setstate__(self, state):
         warnings.warn('VAEWrapperEnv.custom_goal_sampler was not loaded.')
+        state['_goal_sampling_mode'] = 'env'
         super().__setstate__(state)
 
 
