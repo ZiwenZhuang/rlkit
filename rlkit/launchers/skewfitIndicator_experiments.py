@@ -228,6 +228,7 @@ def generate_vae_dataset(variant):
                     transpose=True,
                     normalize=True,
                     non_presampled_goal_img_is_garbage=non_presampled_goal_img_is_garbage,
+                    **variant.get('image_env_kwargs', {})
                 )
             else:
                 imsize = env.imsize
@@ -331,6 +332,7 @@ def get_envs(variant):
                 init_camera=init_camera,
                 transpose=True,
                 normalize=True,
+                **variant.get('image_env_kwargs', {})
             )
         if presample_goals:
             """
@@ -576,6 +578,7 @@ def get_video_save_func(rollout_function, env, policy, variant):
             init_camera=variant.get('init_camera', None),
             transpose=True,
             normalize=True,
+            **variant.get('image_env_kwargs', {})
         )
 
         def save_video(algo, epoch):
