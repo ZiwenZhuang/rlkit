@@ -416,7 +416,9 @@ class ConvVAETrainer(object):
                 ])
                 save_dir = osp.join(logger.get_snapshot_dir(),
                                     'r%d.png' % epoch)
-                save_image(comparison.data.cpu(), save_dir, nrow=n)
+                # In case of depth image, we store only the RGB image.
+                _img = comparison.data.cpu()
+                save_image(_img[:,:3,:,:], save_dir, nrow=n)
 
         zs = np.array(zs)
 
@@ -477,8 +479,11 @@ class ConvVAETrainer(object):
         sample = ptu.randn(64, self.representation_size)
         sample = self.model.decode(sample)[0].cpu()
         save_dir = osp.join(logger.get_snapshot_dir(), 's%d.png' % epoch)
+        # Incase the data is comtains depth image, we store only RGB image.
+        _image = sample.data.view(64, self.input_channels, self.imsize, self.imsize)
+        _image = _image[:,:3,:,:]
         save_image(
-            sample.data.view(64, self.input_channels, self.imsize, self.imsize).transpose(2, 3),
+            _image.transpose(2, 3),
             save_dir
         )
 
