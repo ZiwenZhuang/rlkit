@@ -19,15 +19,13 @@ from copy import deepcopy
 def main(args):
     num_images = 1
     image_env_kwargs = dict(
-        depth= True,
+        depth= False,
     )
-    imsize48_architecture = deepcopy(imsize48_default_architecture)
-    imsize48_architecture['deconv_args']['deconv_output_channels'] = 4
     variant = dict(
         algorithm='Skew-Fit',
         imsize=48,
         double_algo=False,
-        env_id="FetchPush-v0",
+        env_id="Reacher-v0",
         skewfit_variant=dict(
             sample_goals_from_buffer=True,
             save_video=True,
@@ -111,8 +109,8 @@ def main(args):
             dump_skew_debug_plots=True,
             decoder_activation='gaussian',
             vae_kwargs=dict(
-                input_channels=4,
-                architecture=imsize48_architecture,
+                input_channels=3,
+                architecture=imsize48_default_architecture,
                 decoder_distribution='gaussian_identity_variance',
             ),
             # generate_vae_data_fctn=None, # TODO: choose aproper funciton, refering to 'generate_vae_dataset'
@@ -120,7 +118,7 @@ def main(args):
                 N=10,
                 oracle_dataset=True,
                 use_cached=False,
-                num_channels=4*num_images,
+                num_channels=3*num_images,
                 image_env_kwargs= image_env_kwargs,
             ),
 
