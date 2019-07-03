@@ -9,10 +9,15 @@ from rlkit.envs.vae_wrapper import VAEWrappedEnv
 
 
 def simulate_policy(args):
-    data = pickle.load(open(args.file, "rb"))
-    policy = data['evaluation/policy']
-    env = data['evaluation/env']
-    print("Policy and environment loaded")
+    with open(args.file, "rb") as f:
+        data = pickle.load(open(args.file, "rb"))
+        policy = data['evaluation/policy']
+        env = data['evaluation/env']
+        print("Policy and environment loaded")
+    if args.redump:
+        # re-dump the data
+        with open(args.file, "wb") as f:
+            pickle.dump(data, f)
     if args.gpu:
         ptu.set_gpu_mode(True)
         policy.to(ptu.device)
@@ -29,7 +34,7 @@ def simulate_policy(args):
         success_logger = RepeatLogger(osp.join(osp.abspath(args.log_dir), 'image_success.csv'))
         success_logger = RepeatLogger(osp.join(osp.abspath(args.log_dir), 'vae_dist.csv'))
     paths = []
-    for _ in range(64): # incase the testing takes too much physical memory
+    for ite in range(64): # incase the testing takes too much physical memory
         paths.append(multitask_rollout(
             env,
             policy,
@@ -45,10 +50,12 @@ def simulate_policy(args):
                 logger.record_tabular(k, v)
         if args.log_dir != None:
             # this data has to be chosen by specific path field.
-            success_logger.record([paths[-1]['env_infos'][i]['image_success'] for i in range(args.H)])
-            success_logger.record([paths[-1]['env_infos'][i]['vae_dist'] for i in range(args.H)])
+            success_logger.record([paths[-1]['env_infos'][i]['image_success'] for i in range(len(paths[-1]['env_infos']))])
+            success_logger.record([paths[-1]['env_infos'][i]['vae_dist'] for i in range(len(paths[-1]['env_infos']))])
         logger.dump_tabular()
+        logger.log("Rollout done: # %d" % ite)
 
+    print("Testing learning result done...")
 
 if __name__ == "__main__":
 
@@ -66,6 +73,8 @@ if __name__ == "__main__":
     parser.add_argument('--hide', action='store_true')
     parser.add_argument('--log_dir', type=str, default= None,
                         help='Specify the log directory, no logging if not')
+    parser.add_argument('--redump', action='store_true', default=False,
+                        help='restore the data if you need to some modification (not recommended)')
     args = parser.parse_args()
 
     simulate_policy(args)

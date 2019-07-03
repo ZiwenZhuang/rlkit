@@ -25,6 +25,7 @@ class RepeatLogger:
         # create file
         try:
             self._fd = open(filename, mode='x', newline='')
+            print('dump data into: %s' % filename)
         except OSError as e:
             if allow_exist:
                 # add file creation time at the end of the filename (before .csv)
@@ -33,6 +34,7 @@ class RepeatLogger:
                 timestamp = now.strftime('%Y-%m-%d-%H:%M:%S')
                 filename = '.'.join([_name, timestamp, _postfix])
                 self._fd = open(filename, mode='x', newline='')
+                print('dump data into: %s' % filename)
             else:
                 raise e
 
@@ -65,6 +67,8 @@ class RepeatPlotter:
         for row in reader:
             self.raw_data.append([float(num_string) for num_string in row])
         self.raw_data = np.array(self.raw_data) # assuming each row has the same length
+        if np.prod(self.raw_data.shape) == 0:
+            raise RuntimeError('input file has no data')
 
         mean = np.mean(self.raw_data, axis=0)
         std = np.std(self.raw_data, axis=0)
