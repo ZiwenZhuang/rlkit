@@ -83,7 +83,7 @@ def main(args):
                 type=vae_wrapped_env_kwargs['reward_params']['type'],
             ),
             image_env_kwargs=dict(
-                reward_type='image_sparse',
+                reward_type='image_indicator',
             ),
             observation_key='observation',
             desired_goal_key='desired_goal',
