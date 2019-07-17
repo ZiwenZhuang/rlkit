@@ -9,7 +9,7 @@ from rlkit.launchers.skewfit_experiments import \
 from rlkit.torch.vae.conv_vae import imsize48_default_architecture
 
 
-if __name__ == "__main__":
+def main(args):
     variant = dict(
         algorithm='Skew-Fit-SAC',
         double_algo=False,
@@ -119,7 +119,7 @@ if __name__ == "__main__":
     )
 
     n_seeds = 1
-    mode = 'local'
+    mode = args.mode
     exp_prefix = 'dev-{}'.format(
         __file__.replace('/', '-').replace('_', '-').split('.')[0]
     )
@@ -131,6 +131,18 @@ if __name__ == "__main__":
                 exp_prefix=exp_prefix,
                 mode=mode,
                 variant=variant,
+                base_log_dir=args.base_log_dir,
                 use_gpu=True,
           )
+
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser()
+    
+    parser.add_argument('--log_dir', help= 'the root directory to store experiment data',
+        dest= 'base_log_dir', type= str, default= None)
+    parser.add_argument('--mode', help= 'set how to run the experiment',
+        dest= 'mode', type= str, default= 'local')
+
+    main(parser.parse_args())
 
