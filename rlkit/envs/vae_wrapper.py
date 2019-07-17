@@ -226,6 +226,12 @@ class VAEWrappedEnv(ProxyEnv, MultitaskEnv):
             dist = np.linalg.norm(desired_goals - achieved_goals, ord=self.norm_order, axis=1)
             reward = np.array([1]) if (dist < self.epsilon).all() else np.array([-1])
             return reward
+        elif self.reward_type == 'latent_indicator':
+            achieved_goals = obs['latent_achieved_goal']
+            desired_goals = obs['latent_desired_goal']
+            dist = np.linalg.norm(desired_goals - achieved_goals, ord=self.norm_order, axis=1)
+            reward = np.array([1]) if (dist == 0).all() else np.array([-1])
+            return reward
         elif self.reward_type == 'state_distance':
             achieved_goals = obs['state_achieved_goal']
             desired_goals = obs['state_desired_goal']
