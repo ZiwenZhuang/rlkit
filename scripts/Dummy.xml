@@ -1,0 +1,15 @@
+<mujoco model="Dummy Model">
+    <worldbody>
+        <body name="obj1" pos="0.2 0.2 .1">
+            <geom type="sphere" size="0.04" condim="6" friction="1 .001 .001"/>
+        </body>
+
+        <body name="obj2" pos="0 0.2 .1">
+            <geom type="box" size="0.02 0.04 0.06"/>
+        </body>
+
+        <body name="obj3" pos="-0.2 0.2 .1">
+            <geom type="ellipsoid" size="0.05 0.04 0.02" condim="6" friction="1 .001 .001"/>
+        </body>
+    </worldbody>
+</mujoco>

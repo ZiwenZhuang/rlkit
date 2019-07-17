@@ -6,9 +6,12 @@ from rlkit.core.repeat_logger import RepeatLogger, RepeatPlotter
 from rlkit.samplers.rollout_functions import multitask_rollout
 from rlkit.torch import pytorch_util as ptu
 from rlkit.envs.vae_wrapper import VAEWrappedEnv
-
+import mujoco_py
 
 def simulate_policy(args):
+    # start a useless environment incase opengl version error
+    mujoco_py.MjViewer(mujoco_py.MjSim(mujoco_py.load_model_from_path(osp.join(osp.dirname(__file__), "Dummy.xml"))))
+    logger.log("finish adding dummy context viewer, start loading file")
     with open(args.file, "rb") as f:
         data = pickle.load(open(args.file, "rb"))
         policy = data['evaluation/policy']

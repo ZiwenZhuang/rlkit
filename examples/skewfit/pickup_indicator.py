@@ -15,12 +15,13 @@ from rlkit.torch.vae.conv_vae import imsize48_default_architecture
 def main(args):
     num_images = 1
     vae_wrapped_env_kwargs = dict(
+            sample_from_true_prior=False,
             disable_vae= True,
+            goal_sampling_mode= "env",
             reward_params=dict(
                 # type='latent_sparse',
                 type='wrapped_env',
             ),
-            sample_from_true_prior=False,
         )
     variant = dict(
         algorithm='Skew-Fit',
@@ -57,7 +58,7 @@ def main(args):
                 num_eval_steps_per_epoch=500,
                 num_expl_steps_per_train_loop=500,
                 num_trains_per_train_loop=1000,
-                min_num_steps_before_training=10000,
+                min_num_steps_before_training=1000,
                 vae_training_schedule=vae_schedules.custom_schedule,
                 oracle_data=False,
                 vae_save_period=50,
@@ -86,7 +87,7 @@ def main(args):
                 relabeling_goal_sampling_mode='env',
                 disable_vae= vae_wrapped_env_kwargs['disable_vae'],
             ),
-            exploration_goal_sampling_mode='custom_goal_sampler',
+            exploration_goal_sampling_mode='env',
             evaluation_goal_sampling_mode='env',
             normalize=False,
             render=False,
