@@ -73,7 +73,10 @@ def load_local_or_remote_file(filepath, file_type=None):
     else:
         file_type = PICKLE
     if file_type == NUMPY:
+        np_load_old = np.load
+        np.load = lambda *a, **k: np_load_old(*a, allow_pickle=True, **k)
         object = np.load(open(local_path, "rb"))
+        np.load = np_load_old
     elif file_type == JOBLIB:
         object = joblib.load(local_path)
     else:

@@ -17,6 +17,11 @@ from rlkit.torch.skewfit.online_vae_algorithm import OnlineVaeAlgorithm
 from rlkit.util.io import load_local_or_remote_file
 from rlkit.util.video import dump_video
 
+''' In this file, all VAE parts will not be connected to the pipeline, 
+    although the code might still be there, because I'm not sure whether
+    it is good to just delete them.
+    Please use "disable_vae= True" in the dictionary of key "vae_wrapped_env_kwargs"
+'''
 
 def skewfit_full_experiment(variant):
     variant['skewfit_variant']['save_vae_data'] = True
@@ -461,8 +466,8 @@ def skewfit_experiment(variant):
     else:
         uniform_dataset = None
 
-    observation_key = variant.get('observation_key', 'latent_observation')
-    desired_goal_key = variant.get('desired_goal_key', 'latent_desired_goal')
+    observation_key = variant.get('observation_key', 'observation')
+    desired_goal_key = variant.get('desired_goal_key', 'desired_goal')
     achieved_goal_key = desired_goal_key.replace("desired", "achieved")
     obs_dim = (
             env.observation_space.spaces[observation_key].low.size

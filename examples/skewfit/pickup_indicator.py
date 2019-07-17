@@ -64,7 +64,7 @@ def main(args):
             ),
             replay_buffer_kwargs=dict(
                 start_skew_epoch=10,
-                max_size=int(100000),
+                max_size=int(50),
                 fraction_goals_rollout_goals=0.2,
                 fraction_goals_env_goals=0.5,
                 exploration_rewards_type='None',
@@ -85,8 +85,8 @@ def main(args):
             exploration_type='ou',
             training_mode='train',
             testing_mode='test',
-            observation_key='latent_observation',
-            desired_goal_key='latent_desired_goal',
+            observation_key='observation',
+            desired_goal_key='desired_goal',
             image_env_kwargs=dict(
                 reward_type='image_sparse',
             ),

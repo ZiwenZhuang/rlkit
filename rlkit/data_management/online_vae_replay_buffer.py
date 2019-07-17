@@ -30,6 +30,7 @@ class OnlineVaeRelabelingBuffer(SharedObsDictRelabelingBuffer):
             internal_keys=None,
             priority_function_kwargs=None,
             relabeling_goal_sampling_mode='vae_prior',
+            disable_vae= False,
             **kwargs
     ):
         if internal_keys is None:
@@ -52,6 +53,7 @@ class OnlineVaeRelabelingBuffer(SharedObsDictRelabelingBuffer):
         self.exploration_rewards_scale = exploration_rewards_scale
         self.start_skew_epoch = start_skew_epoch
         self.vae_priority_type = vae_priority_type
+        self.disable_vae = disable_vae
         self.power = power
         self._relabeling_goal_sampling_mode = relabeling_goal_sampling_mode
 
@@ -153,8 +155,12 @@ class OnlineVaeRelabelingBuffer(SharedObsDictRelabelingBuffer):
                 next_idx = min(next_idx, self._size)
 
         cur_idx = 0
-        obs_sum = np.zeros(self.vae.representation_size)
-        obs_square_sum = np.zeros(self.vae.representation_size)
+        if self.disable_vae:
+            obs_sum = np.zeros(self.vae.imlength)
+            obs_square_sum = np.zeros(self.vae.imlength)
+        else:
+            obs_sum = np.zeros(self.vae.representation_size)
+            obs_square_sum = np.zeros(self.vae.representation_size)
         while cur_idx < self._size:
             idxs = np.arange(cur_idx, next_idx)
             self._obs[self.observation_key][idxs] = \

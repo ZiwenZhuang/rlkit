@@ -23,6 +23,7 @@ class VAEWrappedEnv(ProxyEnv, MultitaskEnv):
         self,
         wrapped_env,
         vae,
+        disable_vae= False, # leave a interface to remove vae to the pipeline
         vae_input_key_prefix='image',
         sample_from_true_prior=False,
         decode_goals=False,
@@ -40,6 +41,7 @@ class VAEWrappedEnv(ProxyEnv, MultitaskEnv):
             reward_params = dict()
         super().__init__(wrapped_env)
         self.vae = vae
+        self.disable_vae = disable_vae
         self.representation_size = self.vae.representation_size
         self.input_channels = self.vae.input_channels
         self.sample_from_true_prior = sample_from_true_prior
@@ -63,9 +65,10 @@ class VAEWrappedEnv(ProxyEnv, MultitaskEnv):
             dtype=np.float32,
         )
         spaces = self.wrapped_env.observation_space.spaces
-        spaces['observation'] = latent_space
-        spaces['desired_goal'] = latent_space
-        spaces['achieved_goal'] = latent_space
+        if not self.disable_vae:
+            spaces['observation'] = latent_space
+            spaces['desired_goal'] = latent_space
+            spaces['achieved_goal'] = latent_space
         spaces['latent_observation'] = latent_space
         spaces['latent_desired_goal'] = latent_space
         spaces['latent_achieved_goal'] = latent_space
@@ -110,28 +113,38 @@ class VAEWrappedEnv(ProxyEnv, MultitaskEnv):
         latent_obs = self._encode_one(obs[self.vae_input_observation_key])
         obs['latent_observation'] = latent_obs
         obs['latent_achieved_goal'] = latent_obs
-        obs['observation'] = latent_obs
-        obs['achieved_goal'] = latent_obs
+        if not self.disable_vae:
+            obs['observation'] = latent_obs
+            obs['achieved_goal'] = latent_obs
         obs = {**obs, **self.desired_goal}
         return obs
 
     def _update_info(self, info, obs):
-        latent_distribution_params = self.vae.encode(
-            ptu.from_numpy(obs[self.vae_input_observation_key].reshape(1,-1))
-        )
-        latent_obs, logvar = ptu.get_numpy(latent_distribution_params[0])[0], ptu.get_numpy(latent_distribution_params[1])[0]
-        # assert (latent_obs == obs['latent_observation']).all()
-        latent_goal = self.desired_goal['latent_desired_goal']
-        dist = latent_goal - latent_obs
-        var = np.exp(logvar.flatten())
-        var = np.maximum(var, self.reward_min_variance)
-        err = dist * dist / 2 / var
-        mdist = np.sum(err)  # mahalanobis distance
-        info["vae_mdist"] = mdist
-        info["vae_success"] = 1 if mdist < self.epsilon else 0
-        info["vae_dist"] = np.linalg.norm(dist, ord=self.norm_order)
-        info["vae_dist_l1"] = np.linalg.norm(dist, ord=1)
-        info["vae_dist_l2"] = np.linalg.norm(dist, ord=2)
+        if self.disable_vae:
+            # if vae is disabled, all those info are meaningless
+            info["vae_mdist"] = np.nan
+            info["vae_success"] = np.nan
+            info["vae_dist"] = np.nan
+            info["vae_dist_l1"] = np.nan
+            info["vae_dist_l2"] = np.nan
+        else:
+            latent_distribution_params = self.vae.encode(
+                ptu.from_numpy(obs[self.vae_input_observation_key].reshape(1,-1))
+            )
+            latent_obs = ptu.get_numpy(latent_distribution_params[0])[0]
+            logvar = ptu.get_numpy(latent_distribution_params[1])[0]
+            # assert (latent_obs == obs['latent_observation']).all()
+            latent_goal = self.desired_goal['latent_desired_goal']
+            dist = latent_goal - latent_obs
+            var = np.exp(logvar.flatten())
+            var = np.maximum(var, self.reward_min_variance)
+            err = dist * dist / 2 / var
+            mdist = np.sum(err)  # mahalanobis distance
+            info["vae_mdist"] = mdist
+            info["vae_success"] = 1 if mdist < self.epsilon else 0
+            info["vae_dist"] = np.linalg.norm(dist, ord=self.norm_order)
+            info["vae_dist_l1"] = np.linalg.norm(dist, ord=1)
+            info["vae_dist_l2"] = np.linalg.norm(dist, ord=2)
 
     """
     Multitask functions
@@ -173,7 +186,10 @@ class VAEWrappedEnv(ProxyEnv, MultitaskEnv):
             decoded_goals
         )
 
-        goals['desired_goal'] = latent_goals
+        if not self._goal_sampling_mode == 'env':
+            goals['desired_goal'] = latent_goals
+        else:
+            goals['desired_goal'] = goals[self.vae_input_desired_goal_key]
         goals['latent_desired_goal'] = latent_goals
         if proprio_goals is not None:
             goals['proprio_desired_goal'] = proprio_goals
@@ -374,6 +390,10 @@ class VAEWrappedEnv(ProxyEnv, MultitaskEnv):
         return sigma * n + mu
 
     def _decode(self, latents):
+        if self.disable_vae and latents.shape[1] != self.representation_size:
+            # Since I wish to decode the vae in the wrapper,
+            # the input 'latents' could be not in the latent space
+            return latents
         reconstructions, _ = self.vae.decode(ptu.from_numpy(latents))
         decoded = ptu.get_numpy(reconstructions)
         return decoded
@@ -382,6 +402,8 @@ class VAEWrappedEnv(ProxyEnv, MultitaskEnv):
         return self._encode(img[None])[0]
 
     def _encode(self, imgs):
+        if self.disable_vae:
+            return imgs
         latent_distribution_params = self.vae.encode(ptu.from_numpy(imgs))
         return ptu.get_numpy(latent_distribution_params[0])
 
