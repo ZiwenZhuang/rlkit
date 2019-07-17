@@ -14,6 +14,14 @@ from rlkit.torch.vae.conv_vae import imsize48_default_architecture
 
 def main(args):
     num_images = 1
+    vae_wrapped_env_kwargs = dict(
+            disable_vae= True,
+            reward_params=dict(
+                # type='latent_sparse',
+                type='wrapped_env',
+            ),
+            sample_from_true_prior=False,
+        )
     variant = dict(
         algorithm='Skew-Fit',
         imsize=48,
@@ -64,7 +72,7 @@ def main(args):
             ),
             replay_buffer_kwargs=dict(
                 start_skew_epoch=10,
-                max_size=int(50),
+                max_size=int(100),
                 fraction_goals_rollout_goals=0.2,
                 fraction_goals_env_goals=0.5,
                 exploration_rewards_type='None',
@@ -75,7 +83,8 @@ def main(args):
                     num_latents_to_sample=10,
                 ),
                 power=-1,
-                relabeling_goal_sampling_mode='custom_goal_sampler',
+                relabeling_goal_sampling_mode='env',
+                disable_vae= vae_wrapped_env_kwargs['disable_vae'],
             ),
             exploration_goal_sampling_mode='custom_goal_sampler',
             evaluation_goal_sampling_mode='env',
@@ -85,18 +94,15 @@ def main(args):
             exploration_type='ou',
             training_mode='train',
             testing_mode='test',
+            reward_params=dict(
+                type=vae_wrapped_env_kwargs['reward_params']['type'],
+            ),
+            image_env_kwargs=dict(
+                reward_type='image_indicator',
+            ),
             observation_key='observation',
             desired_goal_key='desired_goal',
-            image_env_kwargs=dict(
-                reward_type='image_sparse',
-            ),
-            vae_wrapped_env_kwargs=dict(
-                reward_params=dict(
-                    type='latent_sparse',
-                    # type='wrapped_env',
-                ),
-                sample_from_true_prior=False,
-            ),
+            vae_wrapped_env_kwargs= vae_wrapped_env_kwargs
         ),
         train_vae_variant=dict(
             representation_size=16,
