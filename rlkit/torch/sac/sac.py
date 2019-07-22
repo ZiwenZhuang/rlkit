@@ -36,9 +36,10 @@ class SACTrainer(TorchTrainer):
             use_automatic_entropy_tuning=True,
             target_entropy=None,
 
-            use_reward_filtering= False, # you can decided whether to use reward filtering mechanism
+            use_reward_indicator= False, # you can decided whether to use reward filtering mechanism
             filtering_probs= (0.9, 0.5), # This is the two hyper-parameters p_1 and p_2
-            reward_filtering_threshold= 2,
+            use_reward_filter= False,    # available when 'use_reward_indicator' is True,
+            reward_filtering_threshold= 2,# the filtering threshold while 'use_reward_filter' is True
     ):
         super().__init__()
         self.env = env
@@ -49,7 +50,8 @@ class SACTrainer(TorchTrainer):
         self.target_qf2 = target_qf2
         self.soft_target_tau = soft_target_tau
         self.target_update_period = target_update_period
-        self.use_reward_filtering = use_reward_filtering
+        self.use_reward_indicator = use_reward_indicator
+        self.use_reward_filter = use_reward_filter
         self._filtering_probs = filtering_probs
         self._reward_filtering_threshold = reward_filtering_threshold
 
@@ -100,7 +102,7 @@ class SACTrainer(TorchTrainer):
         '''
         Do reward filtering if use choose so.
         '''
-        if self.use_reward_filtering:
+        if self.use_reward_indicator:
             achieved_goals = batch['achieved_goals']
             indices = batch['indices']
             new_obs_actions, policy_mean, policy_log_std, log_pi, *_ = self.policy(
@@ -146,7 +148,8 @@ class SACTrainer(TorchTrainer):
                 else:
                     # do nothing (allow the reward to be negative)
                     pass
-                if rewards[i] == -1 and q_new_actions[i] > self._reward_filtering_threshold:
+                # the line below is the reward filtering part
+                if self.use_reward_filter and rewards[i] == -1 and q_new_actions[i] > self._reward_filtering_threshold:
                     # record the transition to be discarded, not delete now
                     transition_discarded.append(i)
             # trim transitions if needed

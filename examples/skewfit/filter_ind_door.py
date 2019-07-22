@@ -45,7 +45,8 @@ def main(args):
                 soft_target_tau=1e-3,
                 target_update_period=1,
                 use_automatic_entropy_tuning=True,
-                use_reward_filtering= True,
+                use_reward_indicator= True,
+                use_reward_filter= True,
             ),
             max_path_length=100,
             algo_kwargs=dict(

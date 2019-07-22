@@ -43,6 +43,10 @@ def get_image_presampled_goals(image_env, num_presampled_goals):
         obs = {
             k: v.flatten() for k, v in obs.items()
         }
+        # normalize image incase it is raw image
+        for k, v in obs.items():
+            if v.dtype == np.uint8:
+                obs[k] = v / 255.0
         info = fetch_env.get_current_info()
         
         desired_goal.append(obs['desired_goal'])
