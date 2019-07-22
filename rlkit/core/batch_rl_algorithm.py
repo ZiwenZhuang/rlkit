@@ -77,6 +77,9 @@ class BatchRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
                 for _ in range(self.num_trains_per_train_loop):
                     train_data = self.replay_buffer.random_batch(
                         self.batch_size)
+                    # pack the replay buffer in case reward filtering needs to resample the goal
+                    if 'achieved_goal' in self.replay_buffer._next_obs.keys():
+                        train_data.update({'achieved_goals': self.replay_buffer._next_obs['achieved_goal']})
                     self.trainer.train(train_data)
                 gt.stamp('training', unique=False)
                 self.training_mode(False)
