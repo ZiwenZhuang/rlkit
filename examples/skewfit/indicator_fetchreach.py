@@ -19,7 +19,7 @@ from copy import deepcopy
 def main(args):
     num_images = 1
     image_env_kwargs = dict(
-        depth= False,
+        depth= True,
         reward_type= 'image_indicator',
     )
     vae_wrapped_env_kwargs = dict(
@@ -31,11 +31,13 @@ def main(args):
                 type='wrapped_env',
             ),
         )
+    imsize48_architecture = deepcopy(imsize48_default_architecture)
+    imsize48_architecture['deconv_args']['deconv_output_channels'] = 4
     variant = dict(
         algorithm='Skew-Fit',
         imsize=48,
         double_algo=False,
-        env_id="Reacher-v0",
+        env_id="FetchReach-v0",
         skewfit_variant=dict(
             sample_goals_from_buffer=True,
             save_video=True,
@@ -67,7 +69,7 @@ def main(args):
                 num_expl_steps_per_train_loop=500,
                 num_trains_per_train_loop=5000,
                 min_num_steps_before_training=5000,
-                vae_training_schedule=vae_schedules.custom_schedule,
+                vae_training_schedule=vae_schedules.never_train,
                 oracle_data=False,
                 vae_save_period=50,
                 parallel_vae_train=False,
@@ -121,15 +123,15 @@ def main(args):
             decoder_activation='gaussian',
             vae_kwargs=dict(
                 decoder_distribution='gaussian_identity_variance',
-                input_channels=3,
-                architecture=imsize48_default_architecture,
+                input_channels=4,
+                architecture=imsize48_architecture,
             ),
             # generate_vae_data_fctn=None, # TODO: choose aproper funciton, refering to 'generate_vae_dataset'
             generate_vae_dataset_kwargs=dict(
                 N=10,
                 oracle_dataset=True,
                 use_cached=False,
-                num_channels=3*num_images,
+                num_channels=4*num_images,
                 image_env_kwargs= image_env_kwargs,
             ),
 
@@ -162,7 +164,7 @@ def main(args):
     )
 
     n_seeds = 1
-    mode = args.mode
+    mode = 'local'
     exp_prefix = 'dev-{}'.format(
         __file__.replace('/', '-').replace('_', '-').split('.')[0]
     )
@@ -194,7 +196,5 @@ if __name__ == '__main__':
     
     parser.add_argument('--log_dir', help= 'the root directory to store experiment data',
         dest= 'base_log_dir', type= str, default= None)
-    parser.add_argument('--mode', help= 'set how to run the experiment',
-        dest= 'mode', type= str, default= 'local')
 
     main(parser.parse_args())

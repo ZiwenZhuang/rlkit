@@ -19,23 +19,15 @@ from copy import deepcopy
 def main(args):
     num_images = 1
     image_env_kwargs = dict(
-        depth= False,
-        reward_type= 'image_indicator',
+        depth= True,
     )
-    vae_wrapped_env_kwargs = dict(
-            sample_from_true_prior=False,
-            disable_vae= True,
-            goal_sampling_mode= "env",
-            reward_params=dict(
-                # type='latent_sparse',
-                type='wrapped_env',
-            ),
-        )
+    imsize48_architecture = deepcopy(imsize48_default_architecture)
+    imsize48_architecture['deconv_args']['deconv_output_channels'] = 4
     variant = dict(
         algorithm='Skew-Fit',
         imsize=48,
         double_algo=False,
-        env_id="Reacher-v0",
+        env_id="FetchReach-v0",
         skewfit_variant=dict(
             sample_goals_from_buffer=True,
             save_video=True,
@@ -62,11 +54,11 @@ def main(args):
             max_path_length=50,
             algo_kwargs=dict(
                 batch_size=1024,
-                num_epochs=200,
+                num_epochs=750,
                 num_eval_steps_per_epoch=500,
                 num_expl_steps_per_train_loop=500,
-                num_trains_per_train_loop=5000,
-                min_num_steps_before_training=5000,
+                num_trains_per_train_loop=1000,
+                min_num_steps_before_training=10000,
                 vae_training_schedule=vae_schedules.custom_schedule,
                 oracle_data=False,
                 vae_save_period=50,
@@ -78,12 +70,10 @@ def main(args):
                 soft_target_tau=1e-3,
                 target_update_period=1,
                 use_automatic_entropy_tuning=True,
-                use_reward_indicator= True,
-                use_reward_filter= False,
             ),
             replay_buffer_kwargs=dict(
                 start_skew_epoch=10,
-                max_size=int(5000),
+                max_size=int(100000),
                 fraction_goals_rollout_goals=0.2,
                 fraction_goals_env_goals=0.5,
                 exploration_rewards_type='None',
@@ -94,10 +84,9 @@ def main(args):
                     num_latents_to_sample=10,
                 ),
                 power=-1,
-                relabeling_goal_sampling_mode='env',
-                disable_vae= vae_wrapped_env_kwargs['disable_vae'],
+                relabeling_goal_sampling_mode='custom_goal_sampler',
             ),
-            exploration_goal_sampling_mode='env',
+            exploration_goal_sampling_mode='custom_goal_sampler',
             evaluation_goal_sampling_mode='env',
             normalize=False,
             render=False,
@@ -106,11 +95,13 @@ def main(args):
             training_mode='train',
             testing_mode='test',
             reward_params=dict(
-                type=vae_wrapped_env_kwargs['reward_params']['type'],
+                type='latent_distance',
             ),
-            observation_key='observation',
-            desired_goal_key='desired_goal',
-            vae_wrapped_env_kwargs= vae_wrapped_env_kwargs,
+            observation_key='latent_observation',
+            desired_goal_key='latent_desired_goal',
+            vae_wrapped_env_kwargs=dict(
+                sample_from_true_prior=False,
+            ),
             image_env_kwargs= image_env_kwargs,
         ),
         train_vae_variant=dict(
@@ -120,16 +111,16 @@ def main(args):
             dump_skew_debug_plots=True,
             decoder_activation='gaussian',
             vae_kwargs=dict(
+                input_channels=4,
+                architecture=imsize48_architecture,
                 decoder_distribution='gaussian_identity_variance',
-                input_channels=3,
-                architecture=imsize48_default_architecture,
             ),
             # generate_vae_data_fctn=None, # TODO: choose aproper funciton, refering to 'generate_vae_dataset'
             generate_vae_dataset_kwargs=dict(
                 N=10,
                 oracle_dataset=True,
                 use_cached=False,
-                num_channels=3*num_images,
+                num_channels=4*num_images,
                 image_env_kwargs= image_env_kwargs,
             ),
 
@@ -162,7 +153,7 @@ def main(args):
     )
 
     n_seeds = 1
-    mode = args.mode
+    mode = 'local'
     exp_prefix = 'dev-{}'.format(
         __file__.replace('/', '-').replace('_', '-').split('.')[0]
     )
@@ -194,7 +185,5 @@ if __name__ == '__main__':
     
     parser.add_argument('--log_dir', help= 'the root directory to store experiment data',
         dest= 'base_log_dir', type= str, default= None)
-    parser.add_argument('--mode', help= 'set how to run the experiment',
-        dest= 'mode', type= str, default= 'local')
 
     main(parser.parse_args())
