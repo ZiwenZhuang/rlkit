@@ -443,7 +443,6 @@ class VAEWrappedEnv(ProxyEnv, MultitaskEnv):
 
     def __setstate__(self, state):
         warnings.warn('VAEWrapperEnv.custom_goal_sampler was not loaded.')
-        state['_goal_sampling_mode'] = 'env'
         super().__setstate__(state)
 
 

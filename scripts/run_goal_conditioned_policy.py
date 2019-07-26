@@ -6,11 +6,14 @@ from rlkit.core.repeat_logger import RepeatLogger, RepeatPlotter
 from rlkit.samplers.rollout_functions import multitask_rollout
 from rlkit.torch import pytorch_util as ptu
 from rlkit.envs.vae_wrapper import VAEWrappedEnv
+import numpy as np
+import matplotlib.pyplot as plt
 import mujoco_py
 
 def simulate_policy(args):
     # start a useless environment incase opengl version error
     mujoco_py.MjViewer(mujoco_py.MjSim(mujoco_py.load_model_from_path(osp.join(osp.dirname(__file__), "Dummy.xml"))))
+
     logger.log("finish adding dummy context viewer, start loading file")
     with open(args.file, "rb") as f:
         data = pickle.load(open(args.file, "rb"))
@@ -35,7 +38,10 @@ def simulate_policy(args):
         logger.set_snapshot_dir(osp.abspath(args.log_dir))
         logger.add_tabular_output('rollouts.csv', relative_to_snapshot_dir=True)
         success_logger = RepeatLogger(osp.join(osp.abspath(args.log_dir), 'image_success.csv'))
-        success_logger = RepeatLogger(osp.join(osp.abspath(args.log_dir), 'vae_dist.csv'))
+        vae_logger = RepeatLogger(osp.join(osp.abspath(args.log_dir), 'vae_dist.csv'))
+        ag_logger = RepeatLogger(osp.join(osp.abspath(args.log_dir), 'effector2goal_distance.csv'))
+    if hasattr(env, '_goal_sampling_mode') and env._goal_sampling_mode == 'custom_goal_sampler' and env.custom_goal_sampler == None:
+        env._goal_sampling_mode = 'env'
     paths = []
     for ite in range(64): # incase the testing takes too much physical memory
         paths.append(multitask_rollout(
@@ -43,8 +49,8 @@ def simulate_policy(args):
             policy,
             max_path_length=args.H,
             render=not args.hide,
-            observation_key='observation',
-            desired_goal_key='desired_goal',
+            observation_key=data['evaluation/observation_key'],
+            desired_goal_key=data['evaluation/desired_goal_key'],
         ))
         if hasattr(env, "log_diagnostics"):
             env.log_diagnostics(paths)
@@ -54,7 +60,13 @@ def simulate_policy(args):
         if args.log_dir != None:
             # this data has to be chosen by specific path field.
             success_logger.record([paths[-1]['env_infos'][i]['image_success'] for i in range(len(paths[-1]['env_infos']))])
-            success_logger.record([paths[-1]['env_infos'][i]['vae_dist'] for i in range(len(paths[-1]['env_infos']))])
+            vae_logger.record([paths[-1]['env_infos'][i]['vae_dist'] for i in range(len(paths[-1]['env_infos']))])
+            if "ag_state" in paths[-1]['env_infos'][0].keys():
+                goal_dist = [np.linalg.norm(paths[-1]['env_infos'][i]['effector2goal_distance']) for i in range(len(paths[-1]['env_infos']))]
+                ag_logger.record(goal_dist)
+                plt.plot(goal_dist)
+                plt.show()
+
         logger.dump_tabular()
         logger.log("Rollout done: # %d" % ite)
 
