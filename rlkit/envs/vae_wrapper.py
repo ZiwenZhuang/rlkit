@@ -149,6 +149,15 @@ class VAEWrappedEnv(ProxyEnv, MultitaskEnv):
     """
     Multitask functions
     """
+
+# Start customed function to help penatrating sampling_goal from environment wrapped by image_env
+# This is a deep hack, sorry for the confusion
+    def _customed_goal_sampling_func(self, batch):
+        goals = self.wrapped_env.sample_goals(batch, through_env= True)
+        goals['latent_desired_goal'] = self._encode(goals['image_desired_goal'])
+        return goals
+# End customed function
+
     def sample_goals(self, batch_size):
         # TODO: make mode a parameter you pass in
         if self._goal_sampling_mode == 'custom_goal_sampler':

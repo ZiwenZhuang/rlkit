@@ -41,7 +41,8 @@ def simulate_policy(args):
         vae_logger = RepeatLogger(osp.join(osp.abspath(args.log_dir), 'vae_dist.csv'))
         ag_logger = RepeatLogger(osp.join(osp.abspath(args.log_dir), 'effector2goal_distance.csv'))
     if hasattr(env, '_goal_sampling_mode') and env._goal_sampling_mode == 'custom_goal_sampler' and env.custom_goal_sampler == None:
-        env._goal_sampling_mode = 'env'
+        # This a deep hack, to make the sample directly from env wrapped by image_env
+        env.custom_goal_sampler = env._customed_goal_sampling_func
     paths = []
     for ite in range(64): # incase the testing takes too much physical memory
         paths.append(multitask_rollout(
