@@ -9,10 +9,11 @@ from rlkit.envs.vae_wrapper import VAEWrappedEnv
 import numpy as np
 import matplotlib.pyplot as plt
 import mujoco_py
+import pickle as pkl
 
 def simulate_policy(args):
-    # start a useless environment incase opengl version error
-    mujoco_py.MjViewer(mujoco_py.MjSim(mujoco_py.load_model_from_path(osp.join(osp.dirname(__file__), "Dummy.xml"))))
+    # # start a useless environment incase opengl version error
+    # mujoco_py.MjViewer(mujoco_py.MjSim(mujoco_py.load_model_from_path(osp.join(osp.dirname(__file__), "Dummy.xml"))))
 
     logger.log("finish adding dummy context viewer, start loading file")
     with open(args.file, "rb") as f:
@@ -65,8 +66,8 @@ def simulate_policy(args):
             if "ag_state" in paths[-1]['env_infos'][0].keys():
                 goal_dist = [np.linalg.norm(paths[-1]['env_infos'][i]['effector2goal_distance']) for i in range(len(paths[-1]['env_infos']))]
                 ag_logger.record(goal_dist)
-                plt.plot(goal_dist)
-                plt.show()
+                with open(args.log_dir + "ag_state.csv", "wb+") as f:
+                    pkl.dump(goal_dist, f)
 
         logger.dump_tabular()
         logger.log("Rollout done: # %d" % ite)
