@@ -129,7 +129,9 @@ class SACTrainer(TorchTrainer):
                             'image_desired_goal': np.expand_dims(obs[i, obs_size // 2:].cpu().numpy(), axis=0),
                         }
                         action = actions[i].cpu().numpy()
-                        new_reward = self.env.compute_rewards(actions= np.expand_dims(action, axis=0), obs= next_observation)
+                        # force the reward to 1
+                        new_reward = np.array([1])
+                        # new_reward = self.env.compute_rewards(actions= np.expand_dims(action, axis=0), obs= next_observation)
                         rewards[i] = torch.from_numpy(new_reward)
                     else:
                         # sample from later observations as goal_state
