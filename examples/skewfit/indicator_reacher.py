@@ -80,6 +80,7 @@ def main(args):
                 use_automatic_entropy_tuning=True,
                 use_reward_indicator= True,
                 use_reward_filter= False,
+                filtering_probs= (0.9, 0.8),
             ),
             replay_buffer_kwargs=dict(
                 start_skew_epoch=10,
