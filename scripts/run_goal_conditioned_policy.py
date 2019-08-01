@@ -45,8 +45,10 @@ def simulate_policy(args):
         logger.log("Setup loggers")
     if hasattr(env, '_goal_sampling_mode') and env._goal_sampling_mode == 'custom_goal_sampler' and env.custom_goal_sampler == None:
         # This a deep hack, to make the sample directly from env wrapped by image_env
-        env.custom_goal_sampler = env._customed_goal_sampling_func
-        logger.log("Change env.custom_goal_sampler to its _customed_goal_sampling_func")
+        # ---------------- change to use presampled goal for RIG_door algorithm -------------
+        # env.custom_goal_sampler = env._customed_goal_sampling_func
+        # logger.log("Change env.custom_goal_sampler to its _customed_goal_sampling_func")
+        env._goal_sampling_mode = "presampled"
     paths = []
     logger.log("Start Rollout")
     for ite in range(64): # incase the testing takes too much physical memory
