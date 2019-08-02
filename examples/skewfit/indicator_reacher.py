@@ -65,7 +65,7 @@ def main(args):
                 num_epochs=200,
                 num_eval_steps_per_epoch=500,
                 num_expl_steps_per_train_loop=500,
-                num_trains_per_train_loop=5000,
+                num_trains_per_train_loop=500,
                 min_num_steps_before_training=5000,
                 vae_training_schedule=vae_schedules.custom_schedule,
                 oracle_data=False,

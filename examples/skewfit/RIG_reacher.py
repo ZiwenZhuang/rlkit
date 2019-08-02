@@ -98,7 +98,7 @@ def main(args):
             dump_skew_debug_plots=False,
             decoder_activation='gaussian',
             generate_vae_dataset_kwargs=dict(
-                N=2,
+                N=1000,
                 test_p=.9,
                 use_cached=True,
                 show=False,

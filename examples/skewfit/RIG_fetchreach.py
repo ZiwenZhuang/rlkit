@@ -117,7 +117,7 @@ def main(args):
             ),
             # generate_vae_data_fctn=None, # TODO: choose aproper funciton, refering to 'generate_vae_dataset'
             generate_vae_dataset_kwargs=dict(
-                N=10,
+                N=1000,
                 oracle_dataset=True,
                 use_cached=False,
                 num_channels=4*num_images,
