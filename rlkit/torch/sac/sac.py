@@ -35,11 +35,6 @@ class SACTrainer(TorchTrainer):
 
             use_automatic_entropy_tuning=True,
             target_entropy=None,
-
-            use_reward_indicator= False, # you can decided whether to use reward filtering mechanism
-            filtering_probs= (0.9, 0.5), # This is the two hyper-parameters p_1 and p_2
-            use_reward_filter= False,    # available when 'use_reward_indicator' is True,
-            reward_filtering_threshold= 2,# the filtering threshold while 'use_reward_filter' is True
     ):
         super().__init__()
         self.env = env
@@ -50,10 +45,6 @@ class SACTrainer(TorchTrainer):
         self.target_qf2 = target_qf2
         self.soft_target_tau = soft_target_tau
         self.target_update_period = target_update_period
-        self.use_reward_indicator = use_reward_indicator
-        self.use_reward_filter = use_reward_filter
-        self._filtering_probs = filtering_probs
-        self._reward_filtering_threshold = reward_filtering_threshold
 
         self.use_automatic_entropy_tuning = use_automatic_entropy_tuning
         if self.use_automatic_entropy_tuning:
@@ -98,69 +89,6 @@ class SACTrainer(TorchTrainer):
         obs = batch['observations']
         actions = batch['actions']
         next_obs = batch['next_observations']
-
-        '''
-        Do reward filtering if use choose so.
-        '''
-        if self.use_reward_indicator:
-            achieved_goals = batch['achieved_goals']
-            indices = batch['indices']
-            new_obs_actions, policy_mean, policy_log_std, log_pi, *_ = self.policy(
-                obs, reparameterize=True, return_log_prob=True,
-            )
-            q_new_actions = torch.min(
-                self.qf1(obs, new_obs_actions.detach()),
-                self.qf2(obs, new_obs_actions.detach()),
-            )
-            q_new_actions = q_new_actions.detach()
-            transition_discarded = []
-            # for each transition in R do...
-            for i in range(batch["actions"].shape[0]):
-                if random.random() < self._filtering_probs[0]:
-                    obs_size = obs.shape[1]
-                    if random.random() < self._filtering_probs[1]:
-                        # change goal as observation
-                        obs[i, obs_size // 2:] = obs[i, :obs_size // 2]
-                        # recompute the reward (due to the compute_rewards() requirement, I have to expand the array dimension)
-                        next_observation = {
-                            'achieved_goal': np.expand_dims(obs[i, :obs_size // 2].cpu().numpy(), axis=0),
-                            'desired_goal': np.expand_dims(obs[i, obs_size // 2:].cpu().numpy(), axis=0),
-                            'image_achieved_goal': np.expand_dims(obs[i, :obs_size // 2].cpu().numpy(), axis=0),
-                            'image_desired_goal': np.expand_dims(obs[i, obs_size // 2:].cpu().numpy(), axis=0),
-                        }
-                        action = actions[i].cpu().numpy()
-                        # force the reward to 1
-                        new_reward = np.array([1])
-                        # new_reward = self.env.compute_rewards(actions= np.expand_dims(action, axis=0), obs= next_observation)
-                        rewards[i] = torch.from_numpy(new_reward)
-                    else:
-                        # sample from later observations as goal_state
-                        choose_ind = np.random.randint((indices.data.cpu().numpy())[i], achieved_goals.shape[0])
-                        obs[i, obs_size // 2:] = achieved_goals[choose_ind, :obs_size // 2]
-                        # recompute the reward (due to the compute_rewards() requirement, I have to expand the array dimension)
-                        next_observation = {
-                            'achieved_goal': np.expand_dims(obs[i, :obs_size // 2].cpu().numpy(), axis=0),
-                            'desired_goal': np.expand_dims(obs[i, obs_size // 2:].cpu().numpy(), axis=0),
-                            'image_achieved_goal': np.expand_dims(obs[i, :obs_size // 2].cpu().numpy(), axis=0),
-                            'image_desired_goal': np.expand_dims(obs[i, obs_size // 2:].cpu().numpy(), axis=0),
-                        }
-                        action = actions[i].cpu().numpy()
-                        new_reward = self.env.compute_rewards(actions= np.expand_dims(action, axis=0), obs= next_observation)
-                        rewards[i] = torch.from_numpy(new_reward)
-                else:
-                    # do nothing (allow the reward to be negative)
-                    pass
-                # the line below is the reward filtering part
-                if self.use_reward_filter and rewards[i] == -1 and q_new_actions[i] > self._reward_filtering_threshold:
-                    # record the transition to be discarded, not delete now
-                    transition_discarded.append(i)
-            # trim transitions if needed
-            for index in transition_discarded:
-                rewards = torch.cat((rewards[:index, :], rewards[index+1:, :]))
-                terminals = torch.cat((terminals[:index, :], terminals[index+1:, :]))
-                obs = torch.cat((obs[:index, :], obs[index+1:, :]))
-                actions = torch.cat((actions[:index, :], actions[index+1:, :]))
-                next_obs = torch.cat((next_obs[:index, :], next_obs[index+1:, :]))
         """
         Policy and Alpha Loss
         """

@@ -1,4 +1,5 @@
 import numpy as np
+import random
 
 import rlkit.torch.pytorch_util as ptu
 from multiworld.core.image_env import normalize_image
@@ -31,6 +32,8 @@ class OnlineVaeRelabelingBuffer(SharedObsDictRelabelingBuffer):
             priority_function_kwargs=None,
             relabeling_goal_sampling_mode='vae_prior',
             disable_vae= False,
+            use_reward_balance= False,  # initiate reward balancing in coorprate with indicator reward
+            balancing_probs= (0.9, 0.5), # used only when indicator reward is switched on
             **kwargs
     ):
         if internal_keys is None:
@@ -54,6 +57,8 @@ class OnlineVaeRelabelingBuffer(SharedObsDictRelabelingBuffer):
         self.start_skew_epoch = start_skew_epoch
         self.vae_priority_type = vae_priority_type
         self.disable_vae = disable_vae
+        self.use_reward_balance = use_reward_balance
+        self.balancing_probs = balancing_probs
         self.power = power
         self._relabeling_goal_sampling_mode = relabeling_goal_sampling_mode
 
@@ -90,7 +95,42 @@ class OnlineVaeRelabelingBuffer(SharedObsDictRelabelingBuffer):
         self._register_mp_array("_exploration_rewards")
         self._register_mp_array("_vae_sample_priorities")
 
+    def reward_balancing(self, path):
+        ''' Doing reward balancing in coorporate with indicator reward
+            (considering python is passing by reference, modifying only 
+            'full_observation' should also change others' value)
+        '''
+        # now the path is a dict of sequence of arrays
+        # for each transition along the path
+        path_length = len(path['full_observations'])
+        for i in range(path_length):
+            observation = path['full_observations'][i]
+            if random.random() < self.balancing_probs[0]:
+                if random.random() < self.balancing_probs[1]:
+                    # set goal as current observation
+                    observation['desired_goal'] = observation['achieved_goal']
+                    observation['image_desired_goal'] = observation['image_observation']
+                    observation['latent_desired_goal'] = observation['latent_achieved_goal']
+                    # if (observation['state_desired_goal'] == observation['state_achieved_goal']).all():
+                    #     # this is a true positive
+                    #     # add log remarks
+                    #     pass
+                elif i < path_length-1:
+                    # set goal as one of later observations
+                    index = random.randint(i+1, path_length-1)
+                    observation['desired_goal'] = path['full_observations'][index]['achieved_goal']
+                    observation['image_desired_goal'] = path['full_observations'][index]['image_observation']
+                    observation['latent_desired_goal'] = path['full_observations'][index]['latent_achieved_goal']
+            else:
+                # do nothing and allows the reward to be negative (mostly negative)
+                pass
+        # reward filtering will not be done here
+            
+
     def add_path(self, path):
+        if self.use_reward_balance:
+            # balancing the reward
+            self.reward_balancing(path)
         self.add_decoded_vae_goals_to_path(path)
         super().add_path(path)
 

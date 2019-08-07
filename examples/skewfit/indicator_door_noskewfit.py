@@ -71,7 +71,7 @@ def main(args):
                     decoder_distribution='gaussian_identity_variance',
                     num_latents_to_sample=10,
                 ),
-                power=-0.5,
+                power=0, # switch off skewfit mechanism
                 relabeling_goal_sampling_mode='env',
                 disable_vae= vae_wrapped_env_kwargs['disable_vae'],
                 use_reward_balance= True,
