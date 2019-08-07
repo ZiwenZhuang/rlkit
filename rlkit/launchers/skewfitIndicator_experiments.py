@@ -319,7 +319,7 @@ def get_envs(variant):
     presampled_goals_path = variant.get('presampled_goals_path', None)
 
     vae = load_local_or_remote_file(vae_path) if type(
-        vae_path) is str else vae_path
+        vae_path) is str else vae_path # if not a string, it should be a trained vae already
     if 'env_id' in variant:
         import gym
         import multiworld
@@ -411,35 +411,6 @@ def get_envs(variant):
     return env
 
 
-def get_exploration_strategy(variant, env):
-    from rlkit.exploration_strategies.epsilon_greedy import EpsilonGreedy
-    from rlkit.exploration_strategies.gaussian_strategy import GaussianStrategy
-    from rlkit.exploration_strategies.ou_strategy import OUStrategy
-
-    exploration_type = variant['exploration_type']
-    exploration_noise = variant.get('exploration_noise', 0.1)
-    if exploration_type == 'ou':
-        es = OUStrategy(
-            action_space=env.action_space,
-            max_sigma=exploration_noise,
-            min_sigma=exploration_noise,  # Constant sigma
-        )
-    elif exploration_type == 'gaussian':
-        es = GaussianStrategy(
-            action_space=env.action_space,
-            max_sigma=exploration_noise,
-            min_sigma=exploration_noise,  # Constant sigma
-        )
-    elif exploration_type == 'epsilon':
-        es = EpsilonGreedy(
-            action_space=env.action_space,
-            prob_random_action=exploration_noise,
-        )
-    else:
-        raise Exception("Invalid type: " + exploration_type)
-    return es
-
-
 def skewfit_preprocess_variant(variant):
     if variant.get("do_state_exp", False):
         variant['observation_key'] = 'state_observation'
@@ -451,6 +422,8 @@ def skewfit_experiment(variant):
     import rlkit.torch.pytorch_util as ptu
     from rlkit.data_management.online_vae_replay_buffer import \
         OnlineVaeRelabelingBuffer
+    from rlkit.data_management.shared_obs_dict_replay_buffer import \
+        SharedObsDictRelabelingBuffer
     from rlkit.torch.networks import FlattenMlp
     from rlkit.torch.sac.policies import TanhGaussianPolicy
     from rlkit.torch.vae.vae_trainer import ConvVAETrainer
@@ -568,52 +541,3 @@ def skewfit_experiment(variant):
     vae.to(ptu.device)
     algorithm.train()
 
-
-def get_video_save_func(rollout_function, env, policy, variant):
-    logdir = logger.get_snapshot_dir()
-    save_period = variant.get('save_video_period', 50)
-    do_state_exp = variant.get("do_state_exp", False)
-    dump_video_kwargs = variant.get("dump_video_kwargs", dict())
-    if do_state_exp:
-        imsize = variant.get('imsize')
-        dump_video_kwargs['imsize'] = imsize
-        image_env = ImageEnv(
-            env,
-            imsize,
-            init_camera=variant.get('init_camera', None),
-            transpose=True,
-            normalize=True,
-            **variant.get('image_env_kwargs', {})
-        )
-
-        def save_video(algo, epoch):
-            if epoch % save_period == 0 or epoch == algo.num_epochs:
-                filename = osp.join(logdir,
-                                    'video_{epoch}_env.mp4'.format(epoch=epoch))
-                dump_video(image_env, policy, filename, rollout_function,
-                           **dump_video_kwargs)
-    else:
-        image_env = env
-        dump_video_kwargs['imsize'] = env.imsize
-
-        def save_video(algo, epoch):
-            if epoch % save_period == 0 or epoch == algo.num_epochs:
-                filename = osp.join(logdir,
-                                    'video_{epoch}_env.mp4'.format(epoch=epoch))
-                temporary_mode(
-                    image_env,
-                    mode='video_env',
-                    func=dump_video,
-                    args=(image_env, policy, filename, rollout_function),
-                    kwargs=dump_video_kwargs
-                )
-                filename = osp.join(logdir,
-                                    'video_{epoch}_vae.mp4'.format(epoch=epoch))
-                temporary_mode(
-                    image_env,
-                    mode='video_vae',
-                    func=dump_video,
-                    args=(image_env, policy, filename, rollout_function),
-                    kwargs=dump_video_kwargs
-                )
-    return save_video
