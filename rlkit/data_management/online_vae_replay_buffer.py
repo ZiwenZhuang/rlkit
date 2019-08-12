@@ -102,29 +102,47 @@ class OnlineVaeRelabelingBuffer(SharedObsDictRelabelingBuffer):
         '''
         # now the path is a dict of sequence of arrays
         # for each transition along the path
+        true_positive_count = 0
+        false_positive_count = 0
+        true_negative_count = 0
+        false_negative_count = 0
         path_length = len(path['full_observations'])
         for i in range(path_length):
             observation = path['full_observations'][i]
             if random.random() < self.balancing_probs[0]:
                 if random.random() < self.balancing_probs[1]:
                     # set goal as current observation
-                    observation['desired_goal'] = observation['achieved_goal']
-                    observation['image_desired_goal'] = observation['image_observation']
-                    observation['latent_desired_goal'] = observation['latent_achieved_goal']
-                    # if (observation['state_desired_goal'] == observation['state_achieved_goal']).all():
-                    #     # this is a true positive
-                    #     # add log remarks
-                    #     pass
+                    observation[self.desired_goal_key] = observation[self.achieved_goal_key]
+                    path['goals'][i] = path['next_observation'][i][self.observation_key]
+                    path['rewards'][i] = 1
+                    # observation['image_desired_goal'] = observation['image_observation']
+                    # observation['latent_desired_goal'] = observation['latent_achieved_goal']
                 elif i < path_length-1:
                     # set goal as one of later observations
                     index = random.randint(i+1, path_length-1)
-                    observation['desired_goal'] = path['full_observations'][index]['achieved_goal']
-                    observation['image_desired_goal'] = path['full_observations'][index]['image_observation']
-                    observation['latent_desired_goal'] = path['full_observations'][index]['latent_achieved_goal']
+                    observation[self.desired_goal_key] = path['full_observations'][index][self.achieved_goal_key]
+                    path['goals'][i] = path['next_observation'][index][self.achieved_goal_key]
+                    # observation['image_desired_goal'] = path['full_observations'][index]['image_observation']
+                    # observation['latent_desired_goal'] = path['full_observations'][index]['latent_achieved_goal']
             else:
                 # do nothing and allows the reward to be negative (mostly negative)
                 pass
+            # count true/false positive/negative rate
+            if (observation['state_desired_goal'] == observation['state_achieved_goal']).all():
+                # this is a true positive
+                # add log remarks
+                if path['rewards'] > 0:
+                    true_positive_count += 1
+                else:
+                    false_negative_count += 1
+            else:
+                if path['rewards'] > 0:
+                    false_positive_count += 1
+                else:
+                    true_negative_count += 1
         # reward filtering will not be done here
+
+        print("false-positive / false-negative rate: {}".format(false_positive_count / false_negative_count))
             
 
     def add_path(self, path):
