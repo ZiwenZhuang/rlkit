@@ -123,7 +123,7 @@ class ConvVAETrainer(object):
             is_auto_encoder=False,
             background_subtract=False,
             use_parallel_dataloading=True,
-            train_data_workers=2,
+            train_data_workers=0,
             skew_dataset=False,
             skew_config=None,
             priority_function_kwargs=None,
